@@ -1,0 +1,16 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "fullscreen",
+  "name": "count app",
+  "orientation": "natural",
+  "scope": "/",
+  "short_name": "count app",
+  "start_url": "https://taroyanaka.github.io/count_app/",
+  "theme_color": "#ffffff",
+  "description": "counter app",
+  "lang": "en",
+  "categories": [
+    "utilities"
+  ]
+}
