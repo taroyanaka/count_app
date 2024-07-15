@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>count app</title>
+
+<!-- Change script paths -->
+<!-- <script src="./lib/vue@3.2.36.global.prod.js"></script> -->
+<!-- <script src="./lib/localforage@1.10.0.js"></script> -->
+
+<script src="https://cdn.jsdelivr.net/npm/vue@3.2.45/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+
+<!-- <link rel="stylesheet" href="./lib/reset.css"> -->
+
+
+<!-- <script src="./lib/ramda.@0.28.0.js"></script> -->
+<!-- <script src="./lib/shuffle.js"></script> -->
+<!-- <script src="./lib/qrcode.js"></script> -->
+<!-- <script src="./lib/my_global_function_for_q_a.js"></script> -->
+
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/ramda/0.28.0/ramda.min.js"></script> -->
+
+<style>
+    .counter {
+      margin: 10px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      display: inline-block;
+    }
+    .controls {
+      margin: 5px;
+    }
+    h2 {
+      /* Wrap text at 50 characters */
+      word-wrap: break-word;
+      word-break: break-all;
+      width: 30rem; /* Set width of the text box */
+    }
+</style>
+</head>
+<body>
+  <div id="app" v-if="isLoaded">
+    <h1>count app</h1>
+    
+    <div>
+        <!-- Add minlength and maxlength -->
+        <input v-model="newLabel" placeholder="counter name (1〜100 characters)" minlength="1" maxlength="100" />
+        <button @click="addCounter">Add</button>
+    </div>
+
+    <div v-for="(counter, index) in counters" :key="index" class="counter">
+      <h2>{{ counter.label }}</h2>
+      <div class="controls">
+        <p>Count: {{ counter.value }}</p>
+        <button @click="increment(index)">+1</button>
+        <button @click="decrement(index)">-1</button>
+        <button @click="increment_10(index)">+10</button>
+        <button @click="decrement_10(index)">-10</button>
+        <button @click="increment_100(index)">+100</button>
+        <button @click="decrement_100(index)">-100</button>
+      </div>
+      <div>
+        <button @click="confirmDelete(index)">Delete</button>
+        <button @click="postToTwitter(counter)">X.com</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const app = Vue.createApp({
+      data() {
+        return {
+          newLabel: '',
+          counters: [],
+          isLoaded: false // Flag for data loading
+        };
+      },
+      watch: {
+        counters: {
+          handler(newCounters) {
+            localforage.setItem('counters', JSON.stringify(newCounters)); // Save in JSON format
+          },
+          deep: true
+        }
+      },
+      async beforeMount() {
+        const savedCounters = await localforage.getItem('counters');
+        if (savedCounters) {
+          this.counters = JSON.parse(savedCounters); // Restore from JSON format
+        }
+        this.isLoaded = true; // Set flag to true after data loading
+      },
+      methods: {
+        addCounter() {
+          if (this.newLabel.trim().length >= 1 && this.newLabel.trim().length <= 100) {
+            this.counters.push({
+              label: this.newLabel,
+              value: 0 // Manage with a single value
+            });
+            this.newLabel = '';
+          } else {
+            alert('Please enter a name between 1 and 100 characters.');
+          }
+        },
+        increment(index) {
+          this.counters[index].value += 1;
+        },
+        decrement(index) {
+          this.counters[index].value -= 1;
+        },
+        increment_10(index) {
+          this.counters[index].value += 10;
+        },
+        decrement_10(index) {
+          this.counters[index].value -= 10;
+        },
+        increment_100(index) {
+          this.counters[index].value += 100;
+        },
+        decrement_100(index) {
+          this.counters[index].value -= 100;
+        },
+        postToTwitter(counter) {
+          const text = `${counter.label}: ${counter.value}`;
+          const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
+          window.open(url, '_blank');
+        },
+        confirmDelete(index) {
+          if (confirm(`Delete "${this.counters[index].label}"?`)) {
+            this.deleteCounter(index);
+          }
+        },
+        deleteCounter(index) {
+          this.counters.splice(index, 1);
+        }
+      }
+    });
+
+    app.mount('#app');
+  </script>
+</body>
+</html>
