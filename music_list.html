@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music List</title>
+    <!-- Vue.jsをCDNから読み込む -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.45/dist/vue.global.prod.js"></script>
+    <!-- LocalForageをCDNから読み込む -->
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <!-- Faker.jsをCDNから読み込む -->
+    <script src="https://cdn.jsdelivr.net/npm/faker@5.5.3/dist/faker.min.js"></script>
+    <!-- ./lib/music.jsを読み込む -->
+    <script src="./lib/music.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .tabs {
+            margin: 20px;
+        }
+        .tabs button {
+            padding: 10px;
+            cursor: pointer;
+            background: #ddd;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 5px;
+        }
+        .tabs button.active {
+            background: #fff;
+            border-bottom: none;
+            font-weight: bold;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul li {
+            margin-bottom: 10px;
+        }
+        .details {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body id="app">
+    <div>
+        <h1>Music List</h1>
+        <!-- <button @click="generateMusicList">Show Music List</button> -->
+        <ul>
+            <li v-for="(musicGroup, groupIndex) in musicList" :key="groupIndex">
+                <button @click="toggleDetails(groupIndex)">
+                    {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
+                </button>
+                <div v-if="expandedGroup === groupIndex" class="details">
+                    <ul>
+                        <li v-for="(music, musicIndex) in musicGroup" :key="musicIndex">
+                            <a :href="'https://www.youtube.com/results?search_query=' + music" target="_blank">
+                                {{ musicIndex + 1 }}: {{ music }}
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    musicList: [],
+                    expandedGroup: null, // To track which group is currently expanded
+                };
+            },
+            async mounted() {
+                this.generateMusicList();
+            },
+            methods: {
+                generateMusicList() {
+                    this.musicList = music_data.map((music, IDX) => {
+                        return music.map((music2) => {
+                            return music2[0] + " - " + music2[1];
+                        });
+                    });
+                    console.log(this.musicList[0]);
+                },
+                toggleDetails(groupIndex) {
+                    this.expandedGroup = this.expandedGroup === groupIndex ? null : groupIndex;
+                },
+            },
+        }).mount('#app');
+    </script>
+</body>
+</html>

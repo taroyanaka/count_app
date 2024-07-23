@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Generator</title>
+    <!-- Vue.jsをCDNから読み込む -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.45/dist/vue.global.prod.js"></script>
+    <!-- LocalForageをCDNから読み込む -->
+    <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script>
+    <!-- Faker.jsをCDNから読み込む -->
+    <script src="https://cdn.jsdelivr.net/npm/faker@5.5.3/dist/faker.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .profile { margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; }
+    </style>
+</head>
+<body id="app">
+    <div>
+        <h1>Profile Generator</h1>
+        <button @click="generateProfile">Generate New Profile</button>
+        <div v-for="(profile, index) in profiles" :key="index" class="profile" :style="{ backgroundColor: profile.color }">
+            <p><strong>User Name:</strong> {{ profile.userName }}</p>
+            <p><strong>Display Name:</strong> {{ profile.displayName }}</p>
+            <p><strong>Name:</strong> {{ profile.name }}</p>
+            <p><strong>Company Name:</strong> {{ profile.companyName }}</p>
+            <p><strong>Address:</strong> {{ profile.address }}</p>
+            <p><strong>Phone:</strong> {{ profile.phone }}</p>
+            <p><strong>Email:</strong> {{ profile.email }}</p>
+            <p><strong>Price:</strong> ${{ profile.price }}</p>
+            <p><strong>URL:</strong> <a :href="profile.url" target="_blank">{{ profile.url }}</a></p>
+            <p><strong>Music Genre:</strong> {{ profile.musicGenre }}</p>
+            <p><strong>Bio:</strong> {{ profile.bio }}</p>
+            <p><strong>Favorite Animal:</strong> {{ profile.animal }}</p>
+            <p><strong>Birthdate:</strong> {{ profile.birthdate }}</p>
+            <button @click="deleteProfile(index)">Delete Profile</button>
+        </div>
+    </div>
+
+    <script>
+        // Set the locale to en_US for Faker.js
+        faker.locale = 'en_US';
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    profiles: [],
+                };
+            },
+            async mounted() {
+                const savedProfiles = await localforage.getItem('profiles');
+                this.profiles = savedProfiles ? JSON.parse(savedProfiles) : [];
+            },
+            methods: {
+                async generateProfile() {
+                    const newProfile = {
+                        userName: faker.internet.userName(),
+                        displayName: faker.name.findName(),
+                        name: faker.name.findName(),
+                        companyName: faker.company.companyName(),
+                        address: faker.address.streetAddress() + ', ' + faker.address.city() + ', ' + faker.address.stateAbbr() + ', ' + faker.address.country(),
+                        phone: faker.phone.phoneNumber(),
+                        email: faker.internet.email(),
+                        price: faker.commerce.price(),
+                        url: faker.internet.url(),
+                        color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+                        musicGenre: faker.music.genre(),
+                        bio: faker.lorem.sentence(),
+                        animal: faker.animal.type(),
+                        birthdate: faker.date.past(50, new Date()).toLocaleDateString(), // Generate a random birthdate
+                    };
+                    this.profiles.push(newProfile);
+                    await localforage.setItem('profiles', JSON.stringify(this.profiles));
+                },
+                async deleteProfile(index) {
+                    this.profiles.splice(index, 1);
+                    await localforage.setItem('profiles', JSON.stringify(this.profiles));
+                }
+            },
+        }).mount('#app');
+    </script>
+</body>
+</html>

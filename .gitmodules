@@ -1,0 +1,4 @@
+[submodule "external/faker"]
+	path = external/faker
+	url = https://github.com/faker-js/faker.git
+	branch = next
