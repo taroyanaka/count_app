@@ -47,34 +47,21 @@
             cursor: pointer;
             background: #f5f5f5;
         }
-        #initDatabase {
-            position: absolute;
-            bottom: 120px;
-            left: 20px;
-            z-index: 1000;
-            background: white;
-            padding: 10px;
-            border: 2px solid #ccc;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            display: none; /* Initially hidden */
-        }
         #errorMessage {
             position: absolute;
-            bottom: 10px;
+            bottom: 130px;
             left: 20px;
             z-index: 1000;
-            background: white;
+            background: #fdd;
             padding: 10px;
             border: 2px solid #f00;
             border-radius: 5px;
             color: #f00;
-            max-width: calc(100% - 40px);
-            width: 100%;
-            max-height: 100px;
-            overflow-y: auto;
-            display: none; /* Initially hidden */
+            display: none;
+            max-width: 600px;
+        }
+        #initDatabase {
+            display: none; /* Hide the button by default */
         }
     </style>
 </head>
@@ -83,35 +70,30 @@
         <div id="map"></div>
         <button id="zoomToLocation">Zoom to Current Location</button>
         <div id="textAreaContainer">
-            <textarea id="pinText"
-            placeholder="type your text here"
-                minlength="1" maxlength="300"
-                v-model="textAreaValue"
+            <textarea id="pinText" placeholder="[Business Hours]\n[Toilet Seat]◯×\n[Cleanliness Rating]/5\n[In Shop]◯×\n[1-line Comment]"
+            minlength="1" maxlength="300"
             ></textarea>
             <button id="clearButton">Clear</button>
         </div>
+        <div id="errorMessage">Text must be between 1 and 300 characters.</div>
         <button id="initDatabase">Initialize Database</button>
-        <div id="errorMessage">{{ errorMessage }}</div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
+        let glob_data = null;
         const app = Vue.createApp({
             data() {
                 return {
                     map: null,
                     savedPins: [],
                     textArea: null,
-                    textAreaValue: `[Hours]9:00-18:00
-[Washlet]◯×
-[Cleanliness Rating]/5
-[In Shop]◯×
-[1-line Comment]`,
+                    template_text_textArea: '[Business Hours]\n[Toilet Seat]◯×\n[Cleanliness Rating]/5\n[In Shop]◯×\n[1-line Comment]',
                     clearButton: null,
                     zoomToLocationButton: null,
+                    errorMessage: null,
                     initDatabaseButton: null,
-                    errorMessage: '', // Error message data
-                    endpoint: 'https://cotton-concrete-catsup.glitch.me' // Set the API endpoint here
+                    endpoint: 'https://cotton-concrete-catsup.glitch.me', // Set the API endpoint here
                 };
             },
             mounted() {
@@ -119,15 +101,16 @@
                     this.textArea = document.getElementById('pinText');
                     this.clearButton = document.getElementById('clearButton');
                     this.zoomToLocationButton = document.getElementById('zoomToLocation');
+                    this.errorMessage = document.getElementById('errorMessage');
                     this.initDatabaseButton = document.getElementById('initDatabase');
-                    
+                    this.textArea.value = this.template_text_textArea;
+
                     this.initializeMap();
-                    this.loadMarkers().catch(error => {
-                        this.showError('Error loading pins: ' + error.message);
-                    });
+                    this.loadMarkers();
                     this.addEventListeners();
+
                 } catch (error) {
-                    this.showError('Error mounting app: ' + error.message);
+                    console.error('Error mounting app:', error);
                 }
             },
             methods: {
@@ -140,33 +123,36 @@
 
                     this.map.on('click', this.addMarkerOnClick);
                 },
-                addMarker(lat, lng, text) {
-                    const marker = L.marker([lat, lng]).addTo(this.map);
-                    marker.bindPopup(`${text}<br><button onclick="app.deleteMarker(${lat}, ${lng})">Delete</button>`).openPopup();
+                addMarker(lat, lng, text, id) {
+                    const marker = L.marker([lat, lng], { id }).addTo(this.map);
+                    marker.bindPopup(`${text}<br><button onclick="app.deleteMarker(${id})">Delete</button>`).openPopup();
                     return marker;
                 },
-                async addMarkerOnClick(e) {
-                    try {
-                        if (this.textArea) {
-                            const latlng = e.latlng;
-                            const text = this.textArea.value;
+                addMarkerOnClick(e) {
+                    if (this.textArea) {
+                        const latlng = e.latlng;
+                        const text = this.textArea.value;
 
-                            // Check text length
-                            if (text.length === 0) {
-                                this.showError('Text area cannot be empty.');
-                                return;
-                            } else if (text.length > 300) {
-                                this.showError('Text area content exceeds 300 characters.');
-                                return;
+                        if (text.trim() !== '') {
+                            if (text.length >= 1 && text.length <= 300) {
+                                this.savePin(latlng.lat, latlng.lng, text).then(pin => {
+                                    this.addMarker(latlng.lat, latlng.lng, text, pin.id);
+                                });
+                                if (this.errorMessage) {
+                                    this.errorMessage.style.display = 'none';
+                                }
+                            } else {
+                                if (this.errorMessage) {
+                                    this.errorMessage.style.display = 'block';
+                                }
                             }
-
-                            this.addMarker(latlng.lat, latlng.lng, text);
-                            await this.savePin(latlng.lat, latlng.lng, text);
                         } else {
-                            this.showError('TextArea is not available.');
+                            if (this.errorMessage) {
+                                this.errorMessage.style.display = 'block';
+                            }
                         }
-                    } catch (error) {
-                        this.showError('Error adding marker: ' + error.message);
+                    } else {
+                        console.error('TextArea is not available.');
                     }
                 },
                 async loadMarkers() {
@@ -175,49 +161,60 @@
                         if (!response.ok) {
                             throw new Error('Network response was not ok');
                         }
-
                         const pins = await response.json();
-                        
                         if (Array.isArray(pins)) {
                             this.savedPins = pins;
                             this.savedPins.forEach(pin => {
-                                this.addMarker(pin.lat, pin.lng, pin.text);
+                                this.addMarker(pin.lat, pin.lng, pin.text, pin.id);
                             });
                         } else {
                             throw new Error('Fetched data is not an array.');
                         }
                     } catch (error) {
-                        this.showError('Error loading pins: ' + error.message);
+                        console.error('Error loading pins:', error);
                     }
                 },
-                async savePin(lat, lng, text) {
-                    try {
-                        const response = await fetch(`${this.endpoint}/api/pins`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ lat, lng, text })
-                        });
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
+                savePin(lat, lng, text) {
+                    return fetch(`${this.endpoint}/api/pins`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ lat, lng, text })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.id) {
+                            this.savedPins.push(data);
+                            return data;
+                        } else {
+                            throw new Error('Failed to save pin.');
                         }
-                        const data = await response.json();
-                        this.savedPins.push(data);
-                    } catch (error) {
-                        this.showError('Error saving pin: ' + error.message);
-                    }
+                    })
+                    .catch(error => {
+                        console.error('Error saving pin:', error);
+                        throw error;
+                    });
                 },
-                async deleteMarker(lat, lng) {
-                    try {
-                        const response = await fetch(`${this.endpoint}/api/pins/${lat}`, {
-                            method: 'DELETE'
-                        });
+                deleteMarker(id) {
+                    fetch(`${this.endpoint}/api/pins/${id}`, {
+                        method: 'GET'
+                    })
+                    .then(response => {
                         if (response.ok) {
-                            this.savedPins = this.savedPins.filter(pin => !(pin.lat === lat && pin.lng === lng));
+                            return fetch(`${this.endpoint}/api/pins/${id}`, {
+                                method: 'DELETE'
+                            });
+                        } else {
+                            throw new Error('Pin not found on the server.');
+                        }
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            this.savedPins = this.savedPins.filter(pin => pin.id !== id);
                             this.map.eachLayer(layer => {
                                 if (layer instanceof L.Marker) {
-                                    if (layer.getLatLng().lat === lat && layer.getLatLng().lng === lng) {
+                                    if (layer.options.id === id) {
                                         this.map.removeLayer(layer);
                                     }
                                 }
@@ -225,67 +222,35 @@
                         } else {
                             throw new Error('Error deleting pin from the server.');
                         }
-                    } catch (error) {
-                        this.showError('Error deleting pin: ' + error.message);
-                    }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting pin:', error);
+                        alert('Failed to delete pin. ' + error.message);
+                    });
                 },
-                async zoomToLocation() {
+                zoomToLocation() {
                     if (navigator.geolocation) {
                         navigator.geolocation.getCurrentPosition(position => {
                             const latlng = L.latLng(position.coords.latitude, position.coords.longitude);
                             this.map.setView(latlng, 15);
                         }, () => {
-                            this.showError('Unable to retrieve your location.');
+                            alert("Unable to retrieve your location.");
                         });
                     } else {
-                        this.showError('Your browser does not support geolocation.');
+                        alert("Your browser does not support geolocation.");
                     }
-                },
-                async initializeDatabase() {
-                    const password = prompt('Enter the password to initialize the database:');
-                    if (password) {
-                        try {
-                            const response = await fetch(`${this.endpoint}/api/init`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ password })
-                            });
-                            const result = await response.json();
-                            if (response.ok) {
-                                alert(result.message);
-                            } else {
-                                this.showError(result.error);
-                            }
-                        } catch (error) {
-                            this.showError('Error initializing database: ' + error.message);
-                        }
-                    }
-                },
-                showError(message) {
-                    if (message.length > 300) {
-                        message = message.slice(0, 300) + '...'; // Trim message to 300 characters
-                    }
-                    this.errorMessage = message;
-                    document.getElementById('errorMessage').style.display = 'block';
                 },
                 addEventListeners() {
                     if (this.clearButton) {
                         this.clearButton.addEventListener('click', () => {
                             if (this.textArea) {
-                                this.textArea.value = `[Hours]9:00-18:00
-[Washlet]◯×
-[Cleanliness Rating]/5
-[In Shop]◯×
-[1-line Comment]`;
-
+                                this.textArea.value = this.template_text_textArea;
                             } else {
-                                this.showError('TextArea is not available.');
+                                console.error('TextArea is not available.');
                             }
                         });
                     }
-                    
+
                     if (this.zoomToLocationButton) {
                         this.zoomToLocationButton.addEventListener('click', this.zoomToLocation);
                     }
@@ -293,8 +258,29 @@
                     if (this.initDatabaseButton) {
                         this.initDatabaseButton.addEventListener('click', this.initializeDatabase);
                     }
-
-                    this.map.on('click', this.addMarkerOnClick);
+                },
+                initializeDatabase() {
+                    const password = prompt("Enter the initialization password:");
+                    if (password) {
+                        fetch(`${this.endpoint}/api/init`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ password })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Database initialized:', data);
+                            alert('Database initialized successfully.');
+                        })
+                        .catch(error => {
+                            console.error('Error initializing database:', error);
+                            alert('Failed to initialize database. ' + error.message);
+                        });
+                    } else {
+                        alert('Initialization password is required.');
+                    }
                 }
             }
         }).mount('#app');
