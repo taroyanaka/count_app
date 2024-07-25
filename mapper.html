@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet Map with Pins</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { 
+            width: 100%; /* Make the map width 100% of the container */
+            height: 600px; /* Fixed height for the map */
+        }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            cursor: pointer;
+        }
+        #zoomToLocation {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 20px; /* Double the padding for increased size */
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px; /* Increase font size */
+            font-weight: bold; /* Make text bold */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); /* Add shadow for better visibility */
+        }
+        #popupContainer {
+            position: absolute;
+            bottom: 10px; /* 10px from the bottom of the screen */
+            right: 10px;  /* 10px from the right of the screen */
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            width: 250px; /* Adjust width as needed */
+        }
+        #popupContainer textarea {
+            width: 100%;
+            height: 100px;
+            box-sizing: border-box; /* Adjust box model */
+        }
+        #popupContainer button {
+            width: 48%; /* Adjust button width */
+            margin-top: 5px;
+            display: inline-block; /* Align buttons horizontally */
+        }
+        #popupContainer button:last-child {
+            margin-left: 4%; /* Space between buttons */
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="map"></div>
+        <button id="zoomToLocation" @click="zoomToLocation">Zoom to Current Location</button>
+        <div id="popupContainer">
+            <textarea v-model="currentText" placeholder="[Business Hours]\n[Toilet Seat]◯×\n[Cleanliness Rating]/5\n[In Shop]◯×\n[1-line Comment]"></textarea><br>
+            <button @click="addMarkerFromTextarea">Add Marker</button>
+            <button @click="clearTextarea">Clear</button>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        const { createApp } = Vue;
+
+        const app = createApp({
+            data() {
+                return {
+                    map: null,
+                    savedPins: JSON.parse(localStorage.getItem('pins')) || [],
+                    currentText: "[Business Hours]\n[Toilet Seat]◯×\n[Cleanliness Rating]/5\n[In Shop]◯×\n[1-line Comment]"
+                };
+            },
+            mounted() {
+                this.initializeMap();
+                this.loadMarkers();
+            },
+            methods: {
+                initializeMap() {
+                    this.map = L.map('map').setView([35.681382, 139.766084], 13); // Set to Tokyo Station coordinates
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }).addTo(this.map);
+
+                    this.map.on('click', this.addMarkerOnClick);
+                },
+                addMarker(lat, lng, text) {
+                    const marker = L.marker([lat, lng]).addTo(this.map);
+                    marker.bindPopup(`${text}<br><button onclick="app.deleteMarker(${lat}, ${lng})">Delete</button>`).openPopup();
+                    return marker;
+                },
+                addMarkerOnClick(e) {
+                    const latlng = e.latlng;
+                    // Use textarea content to add a marker
+                    const text = this.currentText;
+                    if (text !== null && text.trim() !== "") {
+                        this.addMarker(latlng.lat, latlng.lng, text);
+
+                        this.savedPins.push({ lat: latlng.lat, lng: latlng.lng, text: text });
+                        localStorage.setItem('pins', JSON.stringify(this.savedPins));
+                    }
+                },
+                addMarkerFromTextarea() {
+                    if (this.currentText.trim() === "") {
+                        alert("Text area cannot be empty.");
+                        return;
+                    }
+
+                    const latlng = this.map.getCenter(); // Get the center of the map (adjust as needed)
+                    this.addMarker(latlng.lat, latlng.lng, this.currentText);
+
+                    this.savedPins.push({ lat: latlng.lat, lng: latlng.lng, text: this.currentText });
+                    localStorage.setItem('pins', JSON.stringify(this.savedPins));
+                },
+                clearTextarea() {
+                    this.currentText = "[Business Hours]\n[Toilet Seat]◯×\n[Cleanliness Rating]/5\n[In Shop]◯×\n[1-line Comment]";
+                },
+                loadMarkers() {
+                    this.savedPins.forEach(pin => {
+                        this.addMarker(pin.lat, pin.lng, pin.text);
+                    });
+                },
+                deleteMarker(lat, lng) {
+                    this.savedPins = this.savedPins.filter(pin => !(pin.lat === lat && pin.lng === lng));
+                    localStorage.setItem('pins', JSON.stringify(this.savedPins));
+                    this.map.eachLayer(layer => {
+                        if (layer instanceof L.Marker) {
+                            if (layer.getLatLng().lat === lat && layer.getLatLng().lng === lng) {
+                                this.map.removeLayer(layer);
+                            }
+                        }
+                    });
+                },
+                zoomToLocation() {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(position => {
+                            const latlng = L.latLng(position.coords.latitude, position.coords.longitude);
+                            this.map.setView(latlng, 15);
+                        }, () => {
+                            alert("Unable to get your location.");
+                        });
+                    } else {
+                        alert("Your browser does not support geolocation.");
+                    }
+                }
+            }
+        }).mount('#app');
+
+        // Expose the Vue instance globally
+        window.app = app;
+    </script>
+</body>
+</html>
