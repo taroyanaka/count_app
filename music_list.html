@@ -53,7 +53,13 @@
         <ul>
             <li v-for="(musicGroup, groupIndex) in musicList" :key="groupIndex">
                 <button @click="toggleDetails(groupIndex)">
+
+                    <!-- year(1980から連番) -->
+                     {{ groupIndex + 1980 }} -
+
                     {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
+                <!-- </v-if> -->
+
                 </button>
                 <div v-if="expandedGroup === groupIndex" class="details">
                     <ul>
@@ -73,6 +79,7 @@
             data() {
                 return {
                     musicList: [],
+                    years: [],
                     expandedGroup: null, // To track which group is currently expanded
                 };
             },
@@ -86,6 +93,8 @@
                             return music2[0] + " - " + music2[1];
                         });
                     });
+
+
                     console.log(this.musicList[0]);
                 },
                 toggleDetails(groupIndex) {
