@@ -286,7 +286,9 @@
                 },
                 async saveFavorites() {
                     try {
-                        await localforage.setItem('favorites', this.favorites);
+                        // favorites オブジェクトが IndexedDB に保存できる形式であることを確認
+                        const cleanedFavorites = JSON.parse(JSON.stringify(this.favorites)); // シリアライズしてみる
+                        await localforage.setItem('favorites', cleanedFavorites);
                     } catch (error) {
                         console.error('Error saving favorites:', error);
                     }
