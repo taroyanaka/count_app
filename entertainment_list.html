@@ -82,6 +82,8 @@
                                 <a :href="'https://www.youtube.com/results?search_query=' + music" target="_blank">
                                     {{ musicIndex + 1 }}: {{ music }}
                                 </a>
+                                <!-- https://ja.wikipedia.org/w/index.php?search= -->
+                                 <a :href="'https://ja.wikipedia.org/w/index.php?search=' + music" target="_blank">Wikipedia</a>
                                 <button @click="saveToFavorites(music, 'music')">Add to Favorites</button>
                             </li>
                         </ul>
@@ -106,6 +108,8 @@
                                 </a>
                                 <a :href="'https://www.youtube.com/results?search_query=' + game" target="_blank">YouTube</a>
                                 <button @click="saveToFavorites(game, 'game')">Add to Favorites</button>
+                                <!-- https://ja.wikipedia.org/w/index.php?search= -->
+                                <a :href="'https://ja.wikipedia.org/w/index.php?search=' + game" target="_blank">Wikipedia</a>
                             </li>
                         </ul>
                     </div>
@@ -126,6 +130,8 @@
                             {{ comedyIndex + 1 }}: {{ comedy }}
                         </a>
                         <button @click="saveToFavorites(comedy, 'comedy')">Add to Favorites</button>
+                        <!-- https://ja.wikipedia.org/w/index.php?search= -->
+                        <a :href="'https://ja.wikipedia.org/w/index.php?search=' + comedy" target="_blank">Wikipedia</a>
                     </li>
                 </ul>
             </div>
