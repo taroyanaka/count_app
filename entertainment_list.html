@@ -99,7 +99,7 @@
             <ul>
                 <li v-for="(music_usGroup, groupIndex) in music_usList" :key="groupIndex">
                     <button @click="toggleDetails(groupIndex, 'music_us')">
-                        {{ groupIndex + 1980 }} - {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
+                        {{ groupIndex + 1940 }} - {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
                     </button>
                     <div v-if="expandedGroup === groupIndex && expandedType === 'music_us'" class="details">
                         <ul>
