@@ -65,6 +65,7 @@
             <button @click="currentTab = 'music'" :class="{ active: currentTab === 'music' }">Music List</button>
             <button @click="currentTab = 'game'" :class="{ active: currentTab === 'game' }">Game List</button>
             <button @click="currentTab = 'comedy'" :class="{ active: currentTab === 'comedy' }">Comedy List</button>
+            <button @click="currentTab = 'manga'" :class="{ active: currentTab === 'manga' }">Manga List</button>
             <button @click="currentTab = 'favorite'" :class="{ active: currentTab === 'favorite' }">Favorite List</button>
         </div>
 
@@ -82,8 +83,7 @@
                                 <a :href="'https://www.youtube.com/results?search_query=' + music" target="_blank">
                                     {{ musicIndex + 1 }}: {{ music }}
                                 </a>
-                                <!-- https://ja.wikipedia.org/w/index.php?search= -->
-                                 <a :href="'https://ja.wikipedia.org/w/index.php?search=' + music" target="_blank">Wikipedia</a>
+                                <a :href="'https://ja.wikipedia.org/w/index.php?search=' + music" target="_blank">Wikipedia</a>
                                 <button @click="saveToFavorites(music, 'music')">Add to Favorites</button>
                             </li>
                         </ul>
@@ -108,7 +108,6 @@
                                 </a>
                                 <a :href="'https://www.youtube.com/results?search_query=' + game" target="_blank">YouTube</a>
                                 <button @click="saveToFavorites(game, 'game')">Add to Favorites</button>
-                                <!-- https://ja.wikipedia.org/w/index.php?search= -->
                                 <a :href="'https://ja.wikipedia.org/w/index.php?search=' + game" target="_blank">Wikipedia</a>
                             </li>
                         </ul>
@@ -130,11 +129,34 @@
                             {{ comedyIndex + 1 }}: {{ comedy }}
                         </a>
                         <button @click="saveToFavorites(comedy, 'comedy')">Add to Favorites</button>
-                        <!-- https://ja.wikipedia.org/w/index.php?search= -->
                         <a :href="'https://ja.wikipedia.org/w/index.php?search=' + comedy" target="_blank">Wikipedia</a>
                     </li>
                 </ul>
             </div>
+        </div>
+
+        <!-- Manga List -->
+        <div v-if="currentTab === 'manga'">
+            <h1>Manga List Ver:0.1</h1>
+            <ul>
+                <li v-for="(mangaGroup, groupIndex) in mangaList" :key="groupIndex">
+                    <button @click="toggleDetails(groupIndex, 'manga')">
+                        {{ groupIndex + 1985 }} - {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
+                    </button>
+                    <div v-if="expandedGroup === groupIndex && expandedType === 'manga'" class="details">
+                        <ul>
+                            <li v-for="(manga, mangaIndex) in mangaGroup" :key="mangaIndex">
+                                <a :href="'https://www.amazon.co.jp/s?k=' + manga" target="_blank">
+                                    {{ mangaIndex + 1 }}: {{ manga }}
+                                </a>
+                                <a :href="'https://www.youtube.com/results?search_query=' + manga" target="_blank">YouTube</a>
+                                <button @click="saveToFavorites(manga, 'manga')">Add to Favorites</button>
+                                <a :href="'https://ja.wikipedia.org/w/index.php?search=' + manga" target="_blank">Wikipedia</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
         </div>
 
         <!-- Favorite List -->
@@ -144,8 +166,10 @@
                 <h2>{{ capitalize(type) }} Favorites</h2>
                 <ul>
                     <li v-for="(item, index) in items" :key="index">
-                        <a :href="item.url" target="_blank">{{ item.name }}</a>
-                        <button @click="removeFromFavorites(type, index)">Remove</button>
+                        <a :href="'https://www.youtube.com/results?search_query=' + item" target="_blank">
+                            {{ index + 1 }}: {{ item }}
+                        </a>
+                        <button @click="removeFromFavorites(item, type)">Remove from Favorites</button>
                     </li>
                 </ul>
             </div>
@@ -153,98 +177,96 @@
     </div>
 
     <script>
-        // Initialize LocalForage
-        localforage.config({
-            driver: localforage.LOCALSTORAGE, // Use localStorage
-            name: 'entertainmentApp',
-            version: 1.0,
-            storeName: 'favorites', // Should be alphanumeric, with underscores.
-            description: 'Store favorites for music, games, and comedy'
-        });
-
         const app = Vue.createApp({
             data() {
                 return {
+                    currentTab: 'music',
                     musicList: [],
                     gameList: [],
                     comedyList: [],
-                    expandedGroup: null, // To track which group is currently expanded
-                    expandedType: null, // To track the type of content currently expanded ('music', 'game', 'comedy')
-                    currentTab: 'music', // To track which tab is currently active
-                    favorites: {
-                        music: [],
-                        game: [],
-                        comedy: []
-                    }
+                    mangaList: [],
+                    expandedGroup: null,
+                    expandedType: null,
+                    favorites: {}
                 };
             },
-            async mounted() {
+            mounted() {
                 this.generateMusicList();
                 this.generateGameList();
                 this.generateComedyList();
-                await this.loadFavorites();
+                this.generateMangaList();
+                this.loadFavorites();
             },
             methods: {
                 async generateMusicList() {
-                    this.musicList = music_data.map((music, IDX) => {
+                    this.musicList = music_data.map((music) => {
                         return music.map((music2) => {
                             return music2[0] + " - " + music2[1];
                         });
                     });
                 },
                 async generateGameList() {
-                    this.gameList = game_data.map((game, IDX) => {
-                        return game;
+                    this.gameList = game_data.map((game) => {
+                        return game.map((game2) => {
+                            return game2[0] + " - " + game2[1];
+                        });
                     });
                 },
                 async generateComedyList() {
-                    this.comedyList = comedy_data.map((comedy, IDX) => {
+                    this.comedyList = comedy_data.map((comedy) => {
                         return comedy;
                     });
                 },
+                async generateMangaList() {
+                    this.mangaList = manga_data.map((manga) => {
+                        return manga.map((manga2) => {
+                            return manga2[0] + " - " + manga2[1];
+                        });
+                    });
+                },
                 toggleDetails(groupIndex, type) {
-                    if (type === 'comedy') {
-                        this.expandedType = this.expandedType === 'comedy' ? null : 'comedy';
+                    if (this.expandedType === type && this.expandedGroup === groupIndex) {
+                        this.expandedGroup = null;
+                        this.expandedType = null;
                     } else {
-                        this.expandedGroup = this.expandedGroup === groupIndex ? null : groupIndex;
-                        this.expandedType = this.expandedType === type ? null : type;
+                        this.expandedGroup = groupIndex;
+                        this.expandedType = type;
                     }
                 },
-                async saveToFavorites(name, type) {
-                    let url = '';
-                    if (type === 'music') {
-                        url = 'https://www.youtube.com/results?search_query=' + name;
-                    } else if (type === 'game') {
-                        url = 'https://www.amazon.co.jp/s?k=' + name + '&i=videogames';
-                    } else if (type === 'comedy') {
-                        url = 'https://www.youtube.com/results?search_query=' + name;
+                async saveToFavorites(item, type) {
+                    if (!this.favorites[type]) {
+                        this.favorites[type] = [];
                     }
-
-                    const favorite = { name, url };
-
-                    // Load current favorites
-                    this.favorites[type] = await localforage.getItem(type) || [];
-
-                    // Add new favorite
-                    this.favorites[type].push(favorite);
-
-                    // Save updated favorites
-                    await localforage.setItem(type, this.favorites[type]);
+                    if (!this.favorites[type].includes(item)) {
+                        this.favorites[type].push(item);
+                        await this.saveFavorites();
+                    }
+                },
+                async removeFromFavorites(item, type) {
+                    if (this.favorites[type]) {
+                        this.favorites[type] = this.favorites[type].filter(fav => fav !== item);
+                        await this.saveFavorites();
+                    }
                 },
                 async loadFavorites() {
-                    this.favorites.music = await localforage.getItem('music') || [];
-                    this.favorites.game = await localforage.getItem('game') || [];
-                    this.favorites.comedy = await localforage.getItem('comedy') || [];
+                    try {
+                        const storedFavorites = await localforage.getItem('favorites');
+                        if (storedFavorites) {
+                            this.favorites = storedFavorites;
+                        }
+                    } catch (error) {
+                        console.error('Error loading favorites:', error);
+                    }
                 },
-                async removeFromFavorites(type, index) {
-                    // Remove the favorite item
-                    this.favorites[type].splice(index, 1);
-
-                    // Save updated favorites
-                    await localforage.setItem(type, this.favorites[type]);
+                async saveFavorites() {
+                    try {
+                        await localforage.setItem('favorites', this.favorites);
+                    } catch (error) {
+                        console.error('Error saving favorites:', error);
+                    }
                 },
-                capitalize(string) {
-                    return string.charAt(0).toUpperCase() + string.slice(1);
+                capitalize(str) {
+                    return str.charAt(0).toUpperCase() + str.slice(1);
                 }
             }
         }).mount('#app');
