@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet Map with Pins</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map { height: 100vh; width: 100vw; }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip { cursor: pointer; }
+        #zoomToLocation { position: absolute; top: 10px; right: 10px; z-index: 1000; background: white; padding: 20px; border: 2px solid #ccc; border-radius: 5px; cursor: pointer; font-size: 1.2em; }
+        #textAreaContainer { position: absolute; bottom: 20px; left: 20px; z-index: 1000; background: white; padding: 10px; border: 2px solid #ccc; border-radius: 5px; width: calc(100% - 40px); max-width: 600px; }
+        #textAreaContainer textarea { width: 100%; height: 100px; box-sizing: border-box; }
+        #clearButton { margin-top: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; background: #f5f5f5; }
+        #initDatabaseButton { position: absolute; top: 10px; left: 10px; z-index: 1000; background: white; padding: 20px; border: 2px solid #ccc; border-radius: 5px; cursor: pointer; font-size: 1.2em; display: none; }
+        #loginContainer { position: absolute; top: 60px; right: 10px; z-index: 1000; background: white; padding: 10px; border: 2px solid #ccc; border-radius: 5px; }
+        #loginResult { margin-top: 10px; font-size: 1.2em; }
+        .loginButton { margin-top: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="map"></div>
+        <button id="zoomToLocation">Zoom to Current Location</button>
+        <div id="textAreaContainer">
+            <textarea id="pinText" placeholder="[Business Hours]\n[Toilet Seat]◯×\n[Cleanliness Rating]/5\n[In Shop]◯×\n[1-line Comment]"></textarea>
+            <button id="clearButton">Clear</button>
+        </div>
+        <button id="initDatabaseButton">Init Database</button>
+        <div id="loginContainer">
+            <button class="loginButton" v-if="user === null" @click="googleLogin">Login with Google</button>
+            <button class="loginButton" v-if="user === null" @click="githubLogin">Login with GitHub</button>
+            <button class="loginButton" v-if="user === null" @click="twitterLogin">Login with Twitter</button>
+            <button class="loginButton" v-if="user === null" @click="facebookLogin">Login with Facebook</button>
+            <div id="loginResult" v-if="user !== null">{{ loginResult }} <button @click="signOut">Sign Out</button></div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.2.47/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcOlIDP2KWbJuKM0WeMHNp-WvjTVfLt9Y",
+            authDomain: "p2auth-ea50a.firebaseapp.com",
+            projectId: "p2auth-ea50a",
+            storageBucket: "p2auth-ea50a.appspot.com",
+            messagingSenderId: "796225429484",
+            appId: "1:796225429484:web:ece56ef2fc0be28cd6eac9"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+        const githubProvider = new firebase.auth.GithubAuthProvider();
+        const twitterProvider = new firebase.auth.TwitterAuthProvider();
+        const facebookProvider = new firebase.auth.FacebookAuthProvider();
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    map: null,
+                    savedPins: [],
+                    textArea: null,
+                    clearButton: null,
+                    zoomToLocationButton: null,
+                    initDatabaseButton: null,
+                    template_text_textArea: '[Business Hours]\n[Toilet Seat]◯×\n[Cleanliness Rating]/5\n[In Shop]◯×\n[1-line Comment]',
+                    user: null,
+                    loginResult: 'Not logged in',
+                    endpoint: 'https://cotton-concrete-catsup.glitch.me'
+                };
+            },
+            mounted() {
+                this.textArea = document.getElementById('pinText');
+                this.clearButton = document.getElementById('clearButton');
+                this.zoomToLocationButton = document.getElementById('zoomToLocation');
+                this.initDatabaseButton = document.getElementById('initDatabaseButton');
+
+                this.initializeMap();
+                this.loadMarkers();
+                this.addEventListeners();
+                this.checkLogin();
+            },
+            methods: {
+                initializeMap() {
+                    this.map = L.map('map').setView([35.681382, 139.766084], 13); // Tokyo Station coordinates
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }).addTo(this.map);
+
+                    this.map.on('click', this.addMarkerOnClick);
+                },
+                addMarker(lat, lng, text, id = null) {
+                    const marker = L.marker([lat, lng], { id }).addTo(this.map);
+                    marker.bindPopup(`${text}<br><button onclick="app.deleteMarker(${id})">Delete</button>`).openPopup();
+                    return marker;
+                },
+                addMarkerOnClick(e) {
+                    if (this.textArea) {
+                        const latlng = e.latlng;
+                        const text = this.textArea.value;
+                        if (text.trim() !== '') {
+                            const marker = this.addMarker(latlng.lat, latlng.lng, text);
+                            this.savePin(latlng.lat, latlng.lng, text).then(data => {
+                                marker.options.id = data.id;
+                            });
+                        }
+                    } else {
+                        console.error('TextArea is not available.');
+                    }
+                },
+                async loadMarkers() {
+                    try {
+                        const response = await fetch(`${this.endpoint}/api/pins`);
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        const pins = await response.json();
+                        if (Array.isArray(pins)) {
+                            this.savedPins = pins;
+                            this.savedPins.forEach(pin => {
+                                this.addMarker(pin.lat, pin.lng, pin.text, pin.id);
+                            });
+                        } else {
+                            throw new Error('Fetched data is not an array.');
+                        }
+                    } catch (error) {
+                        console.error('Error loading pins:', error);
+                    }
+                },
+                async savePin(lat, lng, text) {
+                    try {
+                        const response = await fetch(`${this.endpoint}/api/pins`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ lat, lng, text })
+                        });
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        const data = await response.json();
+                        this.savedPins.push(data);
+                        return data;
+                    } catch (error) {
+                        console.error('Error saving pin:', error);
+                    }
+                },
+                async deleteMarker(id) {
+                    if (id === null) {
+                        console.error('Invalid marker ID.');
+                        return;
+                    }
+                    try {
+                        const response = await fetch(`${this.endpoint}/api/pins/${id}`, {
+                            method: 'DELETE'
+                        });
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        this.savedPins = this.savedPins.filter(pin => pin.id !== id);
+                        this.map.eachLayer(layer => {
+                            if (layer instanceof L.Marker && layer.options.id === id) {
+                                this.map.removeLayer(layer);
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Error deleting pin:', error);
+                        alert('Failed to delete pin. ' + error.message);
+                    }
+                },
+                zoomToLocation() {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(position => {
+                            const latlng = L.latLng(position.coords.latitude, position.coords.longitude);
+                            this.map.setView(latlng, 15);
+                        }, () => {
+                            alert("Unable to retrieve your location.");
+                        });
+                    } else {
+                        alert("Your browser does not support geolocation.");
+                    }
+                },
+                addEventListeners() {
+                    if (this.clearButton) {
+                        this.clearButton.addEventListener('click', () => {
+                            if (this.textArea) {
+                                this.textArea.value = this.template_text_textArea;
+                            } else {
+                                console.error('TextArea is not available.');
+                            }
+                        });
+                    }
+
+                    if (this.zoomToLocationButton) {
+                        this.zoomToLocationButton.addEventListener('click', this.zoomToLocation);
+                    }
+
+                    if (this.initDatabaseButton) {
+                        this.initDatabaseButton.addEventListener('click', async () => {
+                            try {
+                                const response = await fetch(`${this.endpoint}/api/init`, { method: 'POST' });
+                                if (response.ok) {
+                                    alert('Database initialized successfully.');
+                                } else {
+                                    alert('Failed to initialize database.');
+                                }
+                            } catch (error) {
+                                console.error('Error initializing database:', error);
+                                alert('Error initializing database.');
+                            }
+                        });
+                    }
+                },
+                checkLogin() {
+                    firebase.auth().onAuthStateChanged(user => {
+                        if (user) {
+                            this.user = user;
+                            this.loginResult = `Logged in as: ${user.displayName}`;
+                        } else {
+                            this.user = null;
+                            this.loginResult = 'Not logged in';
+                        }
+                    });
+                },
+                googleLogin() {
+                    firebase.auth().signInWithPopup(googleProvider).then(result => {
+                        this.user = result.user;
+                        this.loginResult = `Logged in as: ${this.user.displayName}`;
+                    }).catch(error => {
+                        console.error('Error during Google login:', error);
+                        alert('Google login failed. ' + error.message);
+                    });
+                },
+                githubLogin() {
+                    firebase.auth().signInWithPopup(githubProvider).then(result => {
+                        this.user = result.user;
+                        this.loginResult = `Logged in as: ${this.user.displayName}`;
+                    }).catch(error => {
+                        console.error('Error during GitHub login:', error);
+                        alert('GitHub login failed. ' + error.message);
+                    });
+                },
+                twitterLogin() {
+                    firebase.auth().signInWithPopup(twitterProvider).then(result => {
+                        this.user = result.user;
+                        this.loginResult = `Logged in as: ${this.user.displayName}`;
+                    }).catch(error => {
+                        console.error('Error during Twitter login:', error);
+                        alert('Twitter login failed. ' + error.message);
+                    });
+                },
+                facebookLogin() {
+                    firebase.auth().signInWithPopup(facebookProvider).then(result => {
+                        this.user = result.user;
+                        this.loginResult = `Logged in as: ${this.user.displayName}`;
+                    }).catch(error => {
+                        console.error('Error during Facebook login:', error);
+                        alert('Facebook login failed. ' + error.message);
+                    });
+                },
+                signOut() {
+                    firebase.auth().signOut().then(() => {
+                        this.user = null;
+                        this.loginResult = 'Not logged in';
+                    }).catch(error => {
+                        console.error('Error during sign-out:', error);
+                        alert('Sign out failed. ' + error.message);
+                    });
+                }
+            }
+        }).mount('#app');
+
+        window.app = app;
+    </script>
+</body>
+</html>

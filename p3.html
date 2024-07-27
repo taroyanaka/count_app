@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>login</title>
+    <script src="https://unpkg.com/vue@3.2.47/dist/vue.global.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.4.0/firebase-auth.js"></script>
+</head>
+
+<body>
+    <div id="app"></div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBcOlIDP2KWbJuKM0WeMHNp-WvjTVfLt9Y",
+            authDomain: "p2auth-ea50a.firebaseapp.com",
+            projectId: "p2auth-ea50a",
+            storageBucket: "p2auth-ea50a.appspot.com",
+            messagingSenderId: "796225429484",
+            appId: "1:796225429484:web:ece56ef2fc0be28cd6eac9"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+
+        const googleProvider = new firebase.auth.GoogleAuthProvider();
+        const githubProvider = new firebase.auth.GithubAuthProvider();
+        const twitterProvider = new firebase.auth.TwitterAuthProvider();
+        const facebookProvider = new firebase.auth.FacebookAuthProvider();
+
+        const app = Vue.createApp({
+            data() {
+                return {
+                    loginResult: '',
+                    textInput: '',
+                    loadList: '',
+                    gasUrl: "https://script.google.com/macros/s/AKfycbzkGo5cnpyEZQNCPMUBshCys7Wag0AB8mev7z-TvmzAiHArrHnUj_eHnBf_aECoKSWwCw/exec",
+                };
+            },
+            mounted() {
+                this.checkLogin();
+                this.loadText();
+            },
+            methods: {
+                replaceUrlToLocalhost() {
+                    window.location.replace("http://localhost:3000/p3.html");
+                },
+                
+                checkLogin() {
+
+
+                    firebase.auth().onAuthStateChanged((user) => {
+                        if (user) {
+                            this.loginResult = "login success";
+                        } else {
+                            this.loginResult = "not login yet";
+                        }
+                    });
+                },
+                googleLogin() {
+                    firebase.auth().signInWithRedirect(googleProvider);
+                },
+                githubLogin() {
+                    firebase.auth().signInWithRedirect(githubProvider);
+                },
+                twitterLogin() {
+                    firebase.auth().signInWithRedirect(twitterProvider);
+                },
+                facebookLogin() {
+                    firebase.auth().signInWithRedirect(facebookProvider);
+                },
+                signOut() {
+                    firebase.auth().signOut().then(() => {
+                        console.log(`Sign-out successful`);
+                    }).catch((error) => {
+                        console.log(`Sign-out error`);
+                    });
+                },
+                loadText() {
+                    if (!firebase.auth().currentUser) {
+                        this.loginResult = "you need to login or wait few seconds";
+                        return;
+                    }
+                    const option = `?uid=${firebase.auth().currentUser.uid}&getjson=true`;
+                    const fullUrl = this.gasUrl + option;
+                    fetch(fullUrl)
+                        .then((response) => response.json())
+                        .then((data) => {
+                            this.loadList = data;
+                        });
+                },
+                updateText() {
+                    if (!firebase.auth().currentUser) {
+                        this.loginResult = "not login";
+                        return;
+                    }
+                    const option = `?uid=${firebase.auth().currentUser.uid}&text=${this.textInput}`;
+                    const fullUrl = this.gasUrl + option;
+                    fetch(fullUrl)
+                        .then((response) => response.json())
+                        .then((data) => {
+                            this.timer(data["result"]);
+                        });
+                },
+                timer(message) {
+                    this.loginResult = message;
+                    setTimeout(() => {
+                        this.loginResult = '';
+                    }, 3000);
+                }
+            },
+            template: `
+                <div>
+                    <input type="button" class="replaceUrlToLocalhost" @click="replaceUrlToLocalhost" value="replaceUrlToLocalhost">
+                    <h2>{{ loginResult }}</h2>
+                    <input type="text" v-model="textInput">
+                    <input type="button" class="login" value="googleLogin" @click="googleLogin">
+                    <input type="button" class="login" value="githubLogin" @click="githubLogin">
+                    <input type="button" class="login" value="twitterLogin" @click="twitterLogin">
+                    <input type="button" class="login" value="facebookLogin" @click="facebookLogin">
+                    <input type="button" class="logout" value="logout" @click="signOut">
+                    <input type="button" class="updateText" value="updateText" @click="updateText">
+                    <input type="button" class="loadText" value="loadText" @click="loadText">
+                    <h2>{{ loadList }}</h2>
+                </div>
+            `
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
