@@ -26,12 +26,12 @@
             <textarea id="pinText" placeholder="[Business Hours]\n[Toilet Seat]◯×\n[Cleanliness Rating]/5\n[In Shop]◯×\n[1-line Comment]"></textarea>
             <button id="clearButton">Clear</button>
         </div>
-        <button id="initDatabaseButton">Init Database</button>
+        <!-- <button id="initDatabaseButton">Init Database</button> -->
         <div id="loginContainer">
             <button class="loginButton" v-if="user === null" @click="googleLogin">Login with Google</button>
-            <button class="loginButton" v-if="user === null" @click="githubLogin">Login with GitHub</button>
-            <button class="loginButton" v-if="user === null" @click="twitterLogin">Login with Twitter</button>
-            <button class="loginButton" v-if="user === null" @click="facebookLogin">Login with Facebook</button>
+            <!-- <button class="loginButton" v-if="user === null" @click="githubLogin">Login with GitHub</button> -->
+            <!-- <button class="loginButton" v-if="user === null" @click="twitterLogin">Login with Twitter</button> -->
+            <!-- <button class="loginButton" v-if="user === null" @click="facebookLogin">Login with Facebook</button> -->
             <div id="loginResult" v-if="user !== null">{{ loginResult }} <button @click="signOut">Sign Out</button></div>
         </div>
     </div>

@@ -1,6 +1,4 @@
 const BetterSqlite3 = require('better-sqlite3');
-const express = require('express');
-const app = express();
 
 app.use(express.json());
 
@@ -33,6 +31,7 @@ const initializeDatabase = () => {
 
 // Endpoint to initialize the database table
 app.post('/api/init', (req, res) => {
+  console.log("init");
     const { password } = req.body;
 
     if (password === 'init') {
@@ -69,18 +68,21 @@ app.post('/api/pins', (req, res) => {
     });
 });
 
-// Endpoint to fetch all pins for a specific user
+// Endpoint to fetch all pins or specific user's pins
 app.get('/api/pins', (req, res) => {
     const { uid } = req.query;
 
-    if (typeof uid !== 'string') {
-        return res.status(400).json({ error: 'Invalid uid.' });
-    }
-
     try {
-        const stmt = db_for_pins.prepare('SELECT * FROM pins WHERE uid = ?');
-        const pins = stmt.all(uid);
-        res.status(200).json(pins);
+        let stmt;
+        if (typeof uid === 'string') {
+            stmt = db_for_pins.prepare('SELECT * FROM pins WHERE uid = ?');
+            const pins = stmt.all(uid);
+            res.status(200).json(pins);
+        } else {
+            stmt = db_for_pins.prepare('SELECT * FROM pins');
+            const pins = stmt.all();
+            res.status(200).json(pins);
+        }
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve pins.' });
     }
