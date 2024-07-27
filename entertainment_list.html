@@ -141,7 +141,7 @@
             <ul>
                 <li v-for="(mangaGroup, groupIndex) in mangaList" :key="groupIndex">
                     <button @click="toggleDetails(groupIndex, 'manga')">
-                        {{ groupIndex + 1985 }} - {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
+                        {{ groupIndex + 2010 }} - {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
                     </button>
                     <div v-if="expandedGroup === groupIndex && expandedType === 'manga'" class="details">
                         <ul>
