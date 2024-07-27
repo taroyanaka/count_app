@@ -169,10 +169,36 @@
                         <a :href="'https://www.youtube.com/results?search_query=' + item" target="_blank">
                             {{ index + 1 }}: {{ item }}
                         </a>
+                        <a :href="'https://www.amazon.com/s?k=' + item" target="_blank">
+                            (Amazon)
+                        </a>
+                        <a :href="'https://en.wikipedia.org/wiki/' + item" target="_blank">
+                            (Wikipedia)
+                        </a>
                         <button @click="removeFromFavorites(item, type)">Remove from Favorites</button>
                     </li>
                 </ul>
             </div>
+            <!-- 全部のtypeのミックスしたリスト -->
+            <h2>All Favorites</h2>
+            <ul>
+                <li v-for="(items, type) in favorites" :key="type">
+                    <li v-for="(item, index) in items" :key="index">
+                        <a :href="'https://www.youtube.com/results?search_query=' + item" target="_blank">
+                            {{ index + 1 }}: {{ item }}
+                        </a>
+                        <a :href="'https://www.amazon.com/s?k=' + item" target="_blank">
+                            (Amazon)
+                        </a>
+                        <a :href="'https://en.wikipedia.org/wiki/' + item" target="_blank">
+                            (Wikipedia)
+                        </a>
+                        <button @click="removeFromFavorites(item, type)">Remove from Favorites</button>
+                    </li>
+                </li>
+            </ul>
+            <!-- ミックスしたリストをx.comにシェアするボタン -->
+            <button @click="shareFavorites">Share Favorites</button>
         </div>
     </div>
 
@@ -191,11 +217,11 @@
                 };
             },
             mounted() {
+                this.loadFavorites();
                 this.generateMusicList();
                 this.generateGameList();
                 this.generateComedyList();
                 this.generateMangaList();
-                this.loadFavorites();
             },
             methods: {
                 async generateMusicList() {
@@ -267,7 +293,25 @@
                 },
                 capitalize(str) {
                     return str.charAt(0).toUpperCase() + str.slice(1);
-                }
+                },
+                // <!-- ミックスしたリストをx.comにシェアするボタン -->
+                // <button @click="shareFavorites">Share Favorites</button>
+                shareFavorites() {
+        //   const text = `${counter.label}: ${counter.value}`;
+        //   const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        //   window.open(url, '_blank');
+                    const mix_all_data = () =>{
+                        let mix_all_data = [];
+                        for (let type in this.favorites) {
+                            mix_all_data = mix_all_data.concat(this.favorites[type]);
+                        }
+                        return mix_all_data;
+                    }
+                    const text = mix_all_data().join('\n');
+                    const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
+                    window.open(url, '_blank');
+                },
+
             }
         }).mount('#app');
     </script>
