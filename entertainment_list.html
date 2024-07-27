@@ -13,6 +13,7 @@
     <script src="./lib/game.js"></script>
     <script src="./lib/comedy.js"></script>
     <script src="./lib/manga.js"></script>
+    <script src="./lib/music_us.js"></script>
     <style>
         body { font-family: Arial, sans-serif; }
         .tabs {
@@ -63,6 +64,7 @@
         <!-- タブ -->
         <div class="tabs">
             <button @click="currentTab = 'music'" :class="{ active: currentTab === 'music' }">Music List</button>
+            <button @click="currentTab = 'music_us'" :class="{ active: currentTab === 'music_us' }">Music_us List</button>
             <button @click="currentTab = 'game'" :class="{ active: currentTab === 'game' }">Game List</button>
             <button @click="currentTab = 'comedy'" :class="{ active: currentTab === 'comedy' }">Comedy List</button>
             <button @click="currentTab = 'manga'" :class="{ active: currentTab === 'manga' }">Manga List</button>
@@ -83,14 +85,35 @@
                                 <a :href="'https://www.youtube.com/results?search_query=' + music" target="_blank">
                                     {{ musicIndex + 1 }}: {{ music }}
                                 </a>
-                                <a :href="'https://ja.wikipedia.org/w/index.php?search=' + music" target="_blank">Wikipedia</a>
                                 <button @click="saveToFavorites(music, 'music')">Add to Favorites</button>
+                                <a :href="'https://ja.wikipedia.org/w/index.php?search=' + music" target="_blank">Wikipedia</a>
                             </li>
                         </ul>
                     </div>
                 </li>
             </ul>
         </div>
+        <!-- music us list -->
+        <div v-if="currentTab === 'music_us'">
+            <h1>Music_us List Ver:0.1</h1>
+            <ul>
+                <li v-for="(music_usGroup, groupIndex) in music_usList" :key="groupIndex">
+                    <button @click="toggleDetails(groupIndex, 'music_us')">
+                        {{ groupIndex + 1980 }} - {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
+                    </button>
+                    <div v-if="expandedGroup === groupIndex && expandedType === 'music_us'" class="details">
+                        <ul>
+                            <li v-for="(music_us, music_usIndex) in music_usGroup" :key="music_usIndex">
+                                <a :href="'https://www.youtube.com/results?search_query=' + music_us" target="_blank">
+                                    {{ music_usIndex + 1 }}: {{ music_us }}
+                                </a>
+                                <button @click="saveToFavorites(music_us, 'music_us')">Add to Favorites</button>
+                                <a :href="'https://ja.wikipedia.org/w/index.php?search=' + music_us" target="_blank">Wikipedia</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
 
         <!-- Game List -->
         <div v-if="currentTab === 'game'">
@@ -199,6 +222,7 @@
                 return {
                     currentTab: 'music',
                     musicList: [],
+                    music_usList: [],
                     gameList: [],
                     comedyList: [],
                     mangaList: [],
@@ -210,6 +234,7 @@
             mounted() {
                 this.loadFavorites();
                 this.generateMusicList();
+                this.generateMusic_usList();
                 this.generateGameList();
                 this.generateComedyList();
                 this.generateMangaList();
@@ -219,6 +244,13 @@
                     this.musicList = music_data.map((music) => {
                         return music.map((music2) => {
                             return music2[0] + " - " + music2[1];
+                        });
+                    });
+                },
+                async generateMusic_usList() {
+                    this.music_usList = music_us_data.map((music_us) => {
+                        return music_us.map((music_us2) => {
+                            return music_us2[0] + " - " + music_us2[1];
                         });
                     });
                 },
