@@ -13,7 +13,8 @@
     <script src="./lib/game.js"></script>
     <script src="./lib/comedy.js"></script>
     <script src="./lib/manga.js"></script>
-    <script src="./lib/music_us.js"></script>
+    <!-- <script src="./lib/music_us.js"></script> -->
+    <script src="./lib/music_us2.js"></script>
     <style>
         body { font-family: Arial, sans-serif; }
         .tabs {
@@ -99,7 +100,7 @@
             <ul>
                 <li v-for="(music_usGroup, groupIndex) in music_usList" :key="groupIndex">
                     <button @click="toggleDetails(groupIndex, 'music_us')">
-                        {{ groupIndex + 1940 }} - {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
+                        {{ groupIndex + 1946 }} - {{ expandedGroup === groupIndex ? 'Hide Details' : 'Show Details' }} - Group {{ groupIndex + 1 }}
                     </button>
                     <div v-if="expandedGroup === groupIndex && expandedType === 'music_us'" class="details">
                         <ul>
@@ -249,7 +250,7 @@
                     });
                 },
                 async generateMusic_usList() {
-                    this.music_usList = music_us_data.map((music_us) => {
+                    this.music_usList = music_us2_data.map((music_us) => {
                         return music_us.map((music_us2) => {
                             return music_us2[0] + " - " + music_us2[1];
                         });
