@@ -7,6 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.4.0/firebase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -29,11 +30,16 @@
             <button @click="saveRules" v-if="user !== null">Save Rules</button>
 
             
-            <p>{{ outputText }}</p>
+            <p id="outputText"
+            >{{ outputText }}</p>
+            <!-- clipboard -->
+            <button id="copyButton" class="btn" data-clipboard-target="#outputText" v-if="outputText">Copy</button>
         </div>
     </div>
 
     <script>
+      const clipboard = new ClipboardJS('.btn');
+
       let tmp_data;
         const firebaseConfig = {
             apiKey: "AIzaSyBcOlIDP2KWbJuKM0WeMHNp-WvjTVfLt9Y",
