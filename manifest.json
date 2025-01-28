@@ -1,7 +1,6 @@
 {
     "name": "COUNT_APP",
     "short_name": "COUNTER",
-    "version": "2",
     "start_url": "https://taroyanaka.github.io/count_app/index.html",
     "display": "standalone",
     "display_override": ["fullscreen", "standalone"],
